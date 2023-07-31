@@ -6,11 +6,14 @@ from rest_framework.authtoken.models import Token
 from .serializers import UserRegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-@api_view(["POST",])
+@api_view(['POST',])
 def logout_user(request):
     if request.method == "POST":
-        request.user.auth_token.delete()
-        return Response({"Message": "You are logged out"}, status=status.HTTP_200_OK)
+        if request.user.is_authenticated:
+            request.user.auth_token.delete()
+            return Response({"Message": "You are logged out"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"Error": "User is not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
 @api_view(["POST",])
 def user_register_view(request):

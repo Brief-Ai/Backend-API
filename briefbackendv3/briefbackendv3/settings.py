@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'account',
+    'news',
     'rest_framework.authtoken',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_filters',
+    'crontab',
 ]
 
 MIDDLEWARE = [
@@ -154,3 +156,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
+
+CRONJOBS = [
+    ('30 3 * * *', 'myapp.management.commands.fetch_news_articles'),
+]
