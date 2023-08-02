@@ -1,21 +1,22 @@
-from django.shortcuts import render
-
-# Create your views here.
 # views.py
+from django.shortcuts import render
 from rest_framework import generics, filters
-
-from .models import Search
-from .serializers import SearchSerializer
-# from rest_framework.permissions import IsAuthenticated
 from news.models import Article, Search
-from news.serializers import ArticleSerializer
+from news.serializers import ArticleSerializer, SearchSerializer
+from langchain.document_loaders import SQLiteLoader
+from langchain.vectorstores import Chroma
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.chains import RetrievalQAWithSourcesChain
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 class SearchView(generics.ListAPIView):
     queryset = Search.objects.all()
     serializer_class = SearchSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['query']
-
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -31,14 +32,24 @@ class SearchView(generics.ListAPIView):
 
 class NewsArticleSearchView(generics.ListAPIView):
     serializer_class = ArticleSerializer
-    # permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Article.objects.all()
+        # Load the SQLite database
+        db_path = os.path.join(os.getcwd(), 'db.sqlite3')
+        loader = SQLiteLoader(db_path)
+        db = loader.load()
+
+        # Create an OpenAI object and a Chroma chain
+        openai = OpenAIEmbeddings()
+        chroma = Chroma(db, openai, verbose=True)
+        chain = RetrievalQAWithSourcesChain(chroma, openai, verbose=True)
+
+        # Use the chain to query the database and get the articles
         query = self.request.query_params.get('q')
-        # | queryset.filter(description__icontains=query
-        if query:
-            queryset = queryset.filter(title__icontains=query)
-        # Removed user=self.request.user,
-        Search.objects.create( query=query)
+        results = chain.run(query)
+
+        # Get the articles from the results
+        article_ids = [result['source'] for result in results]
+        queryset = Article.objects.filter(id__in=article_ids)
+
         return queryset

@@ -52,9 +52,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         
         return account
 
-
-
-
 class UserLoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
@@ -64,3 +61,6 @@ class UserLoginSerializer(serializers.Serializer):
         if user and user.is_active:
             return user
         raise serializers.ValidationError("Incorrect credentials")
+
+class TokenSerializer(serializers.Serializer):
+    token = serializers.CharField()
