@@ -30,7 +30,6 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'account',
     'news',
@@ -45,17 +44,29 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_filters',
     'crontab',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-]
+    'django.middleware.common.CommonMiddleware',
+    ]
+
+# Cors headers
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+CORS_ORIGIN_ALLOW_ALL = False
+CORS_ORIGIN_WHITELIST = (
+    'http://localhost:3000',
+    'http://127.0.0.1:8000',
+)
+
+
 
 ROOT_URLCONF = 'briefbackendv3.urls'
 
@@ -160,3 +171,4 @@ SIMPLE_JWT = {
 CRONJOBS = [
     ('30 3 * * *', 'myapp.management.commands.fetch_news_articles'),
 ]
+

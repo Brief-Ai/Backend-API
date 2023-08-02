@@ -6,7 +6,7 @@ from rest_framework import generics, filters
 
 from .models import Search
 from .serializers import SearchSerializer
-from rest_framework.permissions import IsAuthenticated
+# from rest_framework.permissions import IsAuthenticated
 from news.models import Article, Search
 from news.serializers import ArticleSerializer
 
@@ -24,18 +24,21 @@ class SearchView(generics.ListAPIView):
 
     def post(self, request, *args, **kwargs):
         query = request.data.get('query')
-        search = Search(user=request.user, query=query)
+        # Add backer user
+        search = Search(query=query)
         search.save()
         return self.list(request, *args, **kwargs)
 
 class NewsArticleSearchView(generics.ListAPIView):
     serializer_class = ArticleSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Article.objects.all()
         query = self.request.query_params.get('q')
+        # | queryset.filter(description__icontains=query
         if query:
-            queryset = queryset.filter(title__icontains=query) | queryset.filter(description__icontains=query)
-        Search.objects.create(user=self.request.user, query=query)
+            queryset = queryset.filter(title__icontains=query)
+        # Removed user=self.request.user,
+        Search.objects.create( query=query)
         return queryset
