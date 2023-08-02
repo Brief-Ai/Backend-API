@@ -11,4 +11,4 @@ class SearchSerializer(serializers.ModelSerializer):
 class ArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
-        fields = ['id', 'title', 'description', 'url', 'published_at','category','image']
+        fields = ['id', 'title', 'description', 'url', 'published_at','category','image','source']
