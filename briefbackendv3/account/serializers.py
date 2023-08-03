@@ -60,7 +60,7 @@ class UserLoginSerializer(serializers.Serializer):
         user = authenticate(username=data['username'], password=data['password'])
         if user and user.is_active:
             return user
-        raise serializers.ValidationError("Incorrect credentials")
+        raise serializers.ValidationError({"errors": ["Incorrect credentials."]})
 
 class TokenSerializer(serializers.Serializer):
     token = serializers.CharField()
