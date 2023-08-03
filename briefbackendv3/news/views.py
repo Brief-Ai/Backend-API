@@ -37,11 +37,13 @@ class NewsArticleSearchView(generics.ListAPIView):
     def get_queryset(self):
         query = self.request.query_params.get('q')
         db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
-        result = db_chain.run(f"SELECT * FROM news_article WHERE title LIKE '%{query}%' OR description LIKE '%{query}%'")
-        rows = result['SQLResult']
-        queryset = []
-        for row in rows:
-            article = Article.objects.get(id=row[0])
+        ids = db_chain.run(f"return only the id for records that are about {query} in the news_articles table. each record should be separated by a space.")
+        conn = sqlite3.connect('your_database_file.db')
+        cursor = conn.cursor()
+        ids_list = ids.split()
+        queryset=[]
+        for l_id in ids_list:
+            article = Article.objects.get(id=l_id)
             queryset.append(article)
         Search.objects.create(query=query)
         return queryset
