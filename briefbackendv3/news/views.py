@@ -1,14 +1,15 @@
 import sqlite3
 from django.shortcuts import render
 from rest_framework import generics, filters
-from langchain import SQLDatabase, ChatOpenAI
-
+from langchain.chat_models import ChatOpenAI
 from .models import Search
 from .serializers import SearchSerializer
 from news.models import Article
 from news.serializers import ArticleSerializer
 
 llm = ChatOpenAI(temperature=0.9, openai_api_key='YOUR_API_KEY')
+
+
 
 class SearchView(generics.ListAPIView):
     queryset = Search.objects.all()
