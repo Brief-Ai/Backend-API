@@ -1,16 +1,14 @@
-# views.py
+import sqlite3
 from django.shortcuts import render
 from rest_framework import generics, filters
-from news.models import Article, Search
-from news.serializers import ArticleSerializer, SearchSerializer
-from langchain.document_loaders import SQLiteLoader
-from langchain.vectorstores import Chroma
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.chains import RetrievalQAWithSourcesChain
-from dotenv import load_dotenv
-import os
+from langchain import SQLDatabase, ChatOpenAI
 
-load_dotenv()
+from .models import Search
+from .serializers import SearchSerializer
+from news.models import Article
+from news.serializers import ArticleSerializer
+
+llm = ChatOpenAI(temperature=0.9, openai_api_key='YOUR_API_KEY')
 
 class SearchView(generics.ListAPIView):
     queryset = Search.objects.all()
@@ -32,24 +30,17 @@ class SearchView(generics.ListAPIView):
 
 class NewsArticleSearchView(generics.ListAPIView):
     serializer_class = ArticleSerializer
+    # permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Load the SQLite database
-        db_path = os.path.join(os.getcwd(), 'db.sqlite3')
-        loader = SQLiteLoader(db_path)
-        db = loader.load()
-
-        # Create an OpenAI object and a Chroma chain
-        openai = OpenAIEmbeddings()
-        chroma = Chroma(db, openai, verbose=True)
-        chain = RetrievalQAWithSourcesChain(chroma, openai, verbose=True)
-
-        # Use the chain to query the database and get the articles
         query = self.request.query_params.get('q')
-        results = chain.run(query)
-
-        # Get the articles from the results
-        article_ids = [result['source'] for result in results]
-        queryset = Article.objects.filter(id__in=article_ids)
-
+        conn = sqlite3.connect('db.sqlite3')
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM news_article WHERE title LIKE ?", ('%' + query + '%',))
+        rows = cursor.fetchall()
+        queryset = []
+        for row in rows:
+            article = Article.objects.get(id=row[0])
+            queryset.append(article)
+        Search.objects.create(query=query)
         return queryset
