@@ -1,15 +1,16 @@
-import sqlite3
 from django.shortcuts import render
 from rest_framework import generics, filters
-from langchain.chat_models import ChatOpenAI
+from langchain import ChatOpenAI
+from langchain import SQLDatabaseChain
+import sqlite3
+
 from .models import Search
 from .serializers import SearchSerializer
 from news.models import Article
 from news.serializers import ArticleSerializer
 
 llm = ChatOpenAI(temperature=0.9, openai_api_key='YOUR_API_KEY')
-
-
+db = 'db.sqlite3'
 
 class SearchView(generics.ListAPIView):
     queryset = Search.objects.all()
@@ -35,10 +36,9 @@ class NewsArticleSearchView(generics.ListAPIView):
 
     def get_queryset(self):
         query = self.request.query_params.get('q')
-        conn = sqlite3.connect('db.sqlite3')
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM news_article WHERE title LIKE ?", ('%' + query + '%',))
-        rows = cursor.fetchall()
+        db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
+        result = db_chain.run(f"SELECT * FROM news_article WHERE title LIKE '%{query}%' OR description LIKE '%{query}%'")
+        rows = result['SQLResult']
         queryset = []
         for row in rows:
             article = Article.objects.get(id=row[0])
