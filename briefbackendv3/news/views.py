@@ -3,6 +3,9 @@ from rest_framework import generics, filters
 from langchain.chat_models import ChatOpenAI
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.utilities import SQLDatabase
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
+
 
 import sqlite3
 
@@ -29,13 +32,14 @@ class SearchView(generics.ListAPIView):
     def post(self, request, *args, **kwargs):
         query = request.data.get('query')
         # Add backer user
-        search = Search(query=query)
+        search = Search(user= self.request.user, query=query)
         search.save()
         return self.list(request, *args, **kwargs)
 
 class NewsArticleSearchView(generics.ListAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     serializer_class = ArticleSerializer
-    # permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         query = self.request.query_params.get('q')
@@ -52,5 +56,5 @@ class NewsArticleSearchView(generics.ListAPIView):
         for l_id in ids_list:
             article = Article.objects.get(id=l_id)
             queryset.append(article)
-        Search.objects.create(query=query)
+        Search.objects.create(user=self.request.user, query=query)
         return queryset
