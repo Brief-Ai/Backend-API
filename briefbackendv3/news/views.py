@@ -14,7 +14,7 @@ from .serializers import SearchSerializer
 from news.models import Article
 from news.serializers import ArticleSerializer
 
-llm = ChatOpenAI(temperature=0.9, openai_api_key='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')
+llm = ChatOpenAI(temperature=1.8, openai_api_key='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')
 # db = 'db.sqlite3'
 db = SQLDatabase.from_uri("sqlite:///db.sqlite3")
 
@@ -44,7 +44,11 @@ class NewsArticleSearchView(generics.ListAPIView):
     def get_queryset(self):
         query = self.request.query_params.get('q')
         db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
-        ids = db_chain.run(f"return only the id for records whose discriptions or titles are about {query} in the news_article table. each record should be separated by a space.")
+        # ids = db_chain.run(f"return only the id for records whose descriptions or titles are about {query} in the news_article table. each record should be separated by a space.")
+        #write a query that returns the id for records whose description content or title content is roughly about {query} or reoder the results by the most relevant to {query} in the news_article table. each record should be separated by a space. no limit. 
+        # ids = db_chain.run(f"return the id for records whose description content or title content is roughly about {query}, reorder the results by the most relevant to {query}, change order of how {query} is stated if it can make the search more accurate, in the news_article table. each record should be separated by a space. no limit.")
+        ids = db_chain.run(f"return the id for records whose description content or title content is roughly about {query}, reorder the results by the most relevant to {query}, change order of how {query} is stated if it can make the search more accurate. In the news_article table. each record separated by space. no limit.")
+        
         # conn = sqlite3.connect('sqlite3.db')
         # cursor = conn.cursor()
         ids_list = ids.split()

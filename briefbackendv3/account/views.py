@@ -81,3 +81,21 @@ def login_user(request):
 def validate_token(request):
     serializer = TokenSerializer({'token': 'valid'})
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+# Make method to regenerate access token from refresh token
+@api_view(['POST'])
+def refresh_token(request):
+    if request.method == "POST":
+        serializer = TokenSerializer(data=request.data)
+        if serializer.is_valid():
+            token = serializer.validated_data['token']
+            refresh = RefreshToken(token)
+            return Response({
+                'token': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token)
+                }
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
