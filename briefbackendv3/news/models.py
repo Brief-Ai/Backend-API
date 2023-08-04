@@ -20,6 +20,6 @@ class Article(models.Model):
 			return self.title
 
 class Search(models.Model):
-    # user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     query = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
