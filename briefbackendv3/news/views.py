@@ -10,6 +10,11 @@ from langchain.utilities import SQLDatabase
 import os
 import sqlite3
 
+
+from fuzzywuzzy import fuzz
+from nltk.tokenize import word_tokenize
+
+
 import re
 from langchain.prompts import PromptTemplate
 
@@ -58,48 +63,13 @@ class NewsArticleSearchView(generics.ListAPIView):
 
     def get_queryset(self):
         query = self.request.query_params.get('q')
-        print(query)
-        # db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
-        toolkit = SQLDatabaseToolkit(db=db, llm=llm)
-        agent_executor = create_sql_agent(
-            llm=llm,
-            toolkit=toolkit,
-            verbose=True,
-            agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        )
-        # query = query.split()
-        # query = " or ".join(query)
-        template = """
-            Summarize the keywords from the search query:
-            EXAMPLES:
-            query: What happened in NBA recently
-            keywords: NBA
-            ================================================================
-            query: {query}
-            keywords:
-            """
-        prompt_template = PromptTemplate(
-            input_variables=['query'],
-            template=template
-        )
-        model = OpenAI(temperature=0, model_name="gpt-3.5-turbo")
-        in_text = prompt_template.format(query=query)
-        
-        query = model(in_text)
-        
-        ids = agent_executor.run(f"Return ONLY the ID for records whose description content or title content is roughly about {query}, reorder the results by how relevant it is to {query} . Return all results")
-        
-        # ids = db_chain.run(f"return only the id for records whose descriptions or titles are about {query} in the news_article table. each record should be separated by a space.")
-        #write a query that returns the id for records whose description content or title content is roughly about {query} or reoder the results by the most relevant to {query} in the news_article table. each record should be separated by a space. no limit. 
-        # ids = db_chain.run(f"return the id for records whose description content or title content is roughly about {query}, reorder the results by the most relevant to {query}, change order of how {query} is stated if it can make the search more accurate, in the news_article table. each record should be separated by a space. no limit.")
-        # ids = db_chain.run(f"return the id for records whose description content or title content is roughly about {query}, reorder the results by the most relevant to {query}, change order of how {query} is stated if it can make the search more accurate. In the news_article table. each record separated by space. no limit.")
-        
-        # conn = sqlite3.connect('sqlite3.db')
-        # cursor = conn.cursor()
-        ids_list = re.findall(r'\d+', ids)
-        queryset=[]
-        for l_id in ids_list:
-            article = Article.objects.get(id=l_id)
-            queryset.append(article)
-        Search.objects.create(user_id=self.request.user.id,query=query)
-        return queryset
+        db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
+        articles = Article.objects.all()
+        results = []
+        for article in articles:
+            title_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.title))
+            description_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.description))
+            if title_score > 70 or description_score > 50:
+                results.append(article)
+        Search.objects.create(user_id=2,query=query)
+        return results

@@ -1,3 +1,9 @@
 {
-  "cSpell.words": ["corsheaders", "langchain", "openai", "vectorstores"]
+  "cSpell.words": [
+    "corsheaders",
+    "fuzzywuzzy",
+    "langchain",
+    "openai",
+    "vectorstores"
+  ]
 }
