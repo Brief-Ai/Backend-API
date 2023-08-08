@@ -113,3 +113,76 @@ class UpdateInterests(generics.ListAPIView):
         user_profile.save()
 
         return interests
+
+# ... (previous imports)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import numpy as np
+import sqlite3
+from numpy.linalg import norm
+from nltk.tokenize import word_tokenize
+
+class InterestBasedArticleView(APIView):
+    def post(self, request, *args, **kwargs):
+        user_interests = request.data.get('user_interests', [])
+        if not user_interests:
+            return Response({'message': 'No interests provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Load embeddings and calculate interest vector
+        glove_file_path = 'glove.6B.50d.txt'
+        embeddings_dict = load_glove_embeddings(glove_file_path)
+
+        interest_vector = None
+        count = 0
+        for interest in user_interests:
+            interest = interest.lower()
+            if interest in embeddings_dict:
+                if interest_vector is None:
+                    interest_vector = np.array(embeddings_dict[interest])
+                else:
+                    interest_vector += np.array(embeddings_dict[interest])
+                count += 1
+        if count > 0:
+            interest_vector /= count
+
+        # Calculate similarity and retrieve relevant articles
+        con = sqlite3.connect("db.sqlite3")
+        cur = con.cursor()
+        data = cur.execute("SELECT title, description FROM news_article").fetchall()
+
+        data = [each[0] + each[1] for each in data]
+
+        sent_embedding = []
+        for i in range(len(data)):
+            sent = word_tokenize(data[i])
+
+            temp = None
+            count = 0
+            for each in sent:
+                each = each.lower()
+                if each in embeddings_dict:
+                    if temp is None:
+                        temp = np.array(embeddings_dict[each])
+                    else:
+                        temp += np.array(embeddings_dict[each])
+                    count += 1
+
+            temp = temp / count
+            sent_embedding.append(temp)
+
+        result = []
+        for idx, val in enumerate(data):
+            doc_vector = sent_embedding[idx]
+            similarity = np.sum(interest_vector * doc_vector) / (norm(interest_vector) * norm(doc_vector))
+            result.append((idx + 1, similarity))
+
+        result = sorted(result, key=lambda x: x[1], reverse=True)
+
+        relevant_article_ids = [idx[0] for idx in result[:8]]
+        
+        # Retrieve relevant articles from the database
+        relevant_articles = Article.objects.filter(id__in=relevant_article_ids)
+        serializer = ArticleSerializer(relevant_articles, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
