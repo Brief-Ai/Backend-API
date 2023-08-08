@@ -13,6 +13,7 @@ import sqlite3
 
 from fuzzywuzzy import fuzz
 from nltk.tokenize import word_tokenize
+import nltk
 
 
 import re
@@ -57,19 +58,44 @@ class SearchView(generics.ListAPIView):
         return self.list(request, *args, **kwargs)
     
 
+from operator import itemgetter
+from django.db.models import Q
 @authentication_classes([JWTAuthentication])
 class NewsArticleSearchView(generics.ListAPIView):
     serializer_class = ArticleSerializer
 
     def get_queryset(self):
         query = self.request.query_params.get('q')
-        db_chain = SQLDatabaseChain(llm=llm, database=db, verbose=True)
-        articles = Article.objects.all()
+        tokens = word_tokenize(query)
+        
+        # Remove stopwords and non-alphanumeric characters
+        keywords = [token.lower() for token in tokens if token.isalnum() and token.lower() not in nltk.corpus.stopwords.words('english')]
+
+    
+        q_objects = Q()
+        for keyword in keywords:
+            q_objects |= Q(title__icontains=keyword) | Q(description__icontains=keyword)
+    
+        articles = Article.objects.filter(q_objects)
+        query = self.request.query_params.get('q')
         results = []
         for article in articles:
             title_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.title))
             description_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.description))
-            if title_score > 70 or description_score > 50:
-                results.append(article)
+            score = title_score + description_score
+            results.append((article, score))
+        results = sorted(results, key=itemgetter(1))
         Search.objects.create(user_id=2,query=query)
-        return results
+        return [article for article, score in results]
+    
+    
+@authentication_classes([JWTAuthentication])
+class NewsArticleRecommendedView(generics.ListAPIView):
+    serializer_class = ArticleSerializer
+
+    # TODO: Use Doc2Vec to make embeddings of articles and then find similar articles based on array of "userInterests" ex: ["politics", "sports", "tech"]
+
+    # Currently just returns the first 8 articles from the database 
+    def get_queryset(self):
+        articles = Article.objects.all()
+        return articles[:8]
