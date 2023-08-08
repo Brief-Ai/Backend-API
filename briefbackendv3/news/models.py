@@ -23,3 +23,7 @@ class Search(models.Model):
     user_id = models.CharField(max_length=255, default=None)
     query = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+class UserProfile(models.Model):
+    user_id = models.CharField(max_length=255, default=None)
+    interests = models.TextField(blank=True)

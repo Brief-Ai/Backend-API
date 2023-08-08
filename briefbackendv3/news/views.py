@@ -1,6 +1,9 @@
 # Auth
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.response import Response
+from .models import UserProfile
+from .serializers import UserProfileSerializer
 
 from django.shortcuts import render
 from rest_framework import generics, filters
@@ -99,3 +102,14 @@ class NewsArticleRecommendedView(generics.ListAPIView):
     def get_queryset(self):
         articles = Article.objects.all()
         return articles[:8]
+
+@authentication_classes([JWTAuthentication])
+class UpdateInterests(generics.ListAPIView):
+    def post(self, request):
+        user_profile= UserProfile.objects.get_or_create(user_id=self.request.user.id)
+        interests = request.data.get('interests', '')
+
+        user_profile.interests = interests
+        user_profile.save()
+
+        return interests
