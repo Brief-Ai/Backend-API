@@ -53,7 +53,7 @@ class SearchView(generics.ListAPIView):
     def post(self, request, *args, **kwargs):
         query = request.data.get('query')
         # Add backer user
-        search = Search(user= self.request.user, query=query)
+        search = Search(user=self.request.user, query=query)
         search.save()
         return self.list(request, *args, **kwargs)
     
