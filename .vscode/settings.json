@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "corsheaders",
+    "dotenv",
     "fuzzywuzzy",
     "langchain",
     "openai",
