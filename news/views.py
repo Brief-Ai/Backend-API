@@ -1,42 +1,51 @@
-# Auth
+# Import statements for REST framework and authentication
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
+from rest_framework import generics, filters
+
+# Import user profile related modules
 from .models import UserProfile
 from .serializers import UserProfileSerializer
 
+# Import Django modules
 from django.shortcuts import render
-from rest_framework import generics, filters
+
+# Import language chain modules
 from langchain.chat_models import ChatOpenAI
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.utilities import SQLDatabase
-import os
-import sqlite3
-import ast
-
-
-from fuzzywuzzy import fuzz
-from nltk.tokenize import word_tokenize
-import nltk
-
-
-import re
 from langchain.prompts import PromptTemplate
-
-from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.sql_database import SQLDatabase
 from langchain.llms.openai import OpenAI
 from langchain.agents import AgentExecutor
 from langchain.agents.agent_types import AgentType
-from langchain.chat_models import ChatOpenAI
 
+# Import standard libraries
+import os
 import sqlite3
+import ast
+import numpy as np
+from numpy.linalg import norm
+from nltk.tokenize import word_tokenize
+from fuzzywuzzy import fuzz
+from nltk.tokenize import word_tokenize
+import nltk
+import re
 
+# Import APIView related modules
+from rest_framework.views import APIView
+from rest_framework import status
+
+# Import search related modules
 from .models import Search
 from .serializers import SearchSerializer
+
+# Import news related modules
 from news.models import Article
 from news.serializers import ArticleSerializer
+
 
 llm = ChatOpenAI(temperature=0.9, openai_api_key=os.getenv('OPENAPI_KEY'))
 # db = 'db.sqlite3'
@@ -113,6 +122,7 @@ class NewsArticleSearchView(generics.ListAPIView):
         results = sorted(results, key=itemgetter(1), reverse=True)
         Search.objects.create(user_id=self.request.user.id, query=query)
         return [article for article, score in results]
+
 @authentication_classes([JWTAuthentication])
 class UpdateInterests(generics.ListAPIView):
     def post(self, request):
@@ -135,14 +145,6 @@ class GetInterests(generics.ListAPIView):
         except UserProfile.DoesNotExist:
             return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-# ... (previous imports)
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-import numpy as np
-import sqlite3
-from numpy.linalg import norm
-from nltk.tokenize import word_tokenize
 
 class InterestBasedArticleView(APIView):
     def get(self, request, *args, **kwargs):
