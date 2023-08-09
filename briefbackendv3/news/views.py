@@ -90,18 +90,6 @@ class NewsArticleSearchView(generics.ListAPIView):
         results = sorted(results, key=itemgetter(1))
         Search.objects.create(user_id=2,query=query)
         return [article for article, score in results]
-    
-    
-@authentication_classes([JWTAuthentication])
-class NewsArticleRecommendedView(generics.ListAPIView):
-    serializer_class = ArticleSerializer
-
-    # TODO: Use Doc2Vec to make embeddings of articles and then find similar articles based on array of "userInterests" ex: ["politics", "sports", "tech"]
-
-    # Currently just returns the first 8 articles from the database 
-    def get_queryset(self):
-        articles = Article.objects.all()
-        return articles[:8]
 
 @authentication_classes([JWTAuthentication])
 class UpdateInterests(generics.ListAPIView):
