@@ -54,3 +54,4 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+briefbackendv3/news/glove.6B.200d.txt
