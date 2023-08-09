@@ -123,10 +123,24 @@ from numpy.linalg import norm
 from nltk.tokenize import word_tokenize
 
 class InterestBasedArticleView(APIView):
-    def post(self, request, *args, **kwargs):
-        user_interests = request.data.get('user_interests', [])
-        if not user_interests:
-            return Response({'message': 'No interests provided'}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, *args, **kwargs):
+        # try:
+        #     user_profile = UserProfile.objects.get(user_id=self.request.user.id)
+        #     user_interests = user_profile.interests
+        # except UserProfile.DoesNotExist:
+        #     return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        # if not user_interests:
+        #     return Response({'message': 'No interests available'}, status=status.HTTP_400_BAD_REQUEST)
+        user_interests = ['writing','anime','art']
+        def load_glove_embeddings(file_path):
+            embeddings_dict = {}
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    values = line.split()
+                    word = values[0]
+                    embedding = [float(val) for val in values[1:]]
+                    embeddings_dict[word] = embedding
+            return embeddings_dict
 
         # Load embeddings and calculate interest vector
         glove_file_path = 'glove.6B.50d.txt'
@@ -146,9 +160,7 @@ class InterestBasedArticleView(APIView):
             interest_vector /= count
 
         # Calculate similarity and retrieve relevant articles
-        con = sqlite3.connect("db.sqlite3")
-        cur = con.cursor()
-        data = cur.execute("SELECT title, description FROM news_article").fetchall()
+        data = Article.objects.values('title', 'description')
 
         data = [each[0] + each[1] for each in data]
 
@@ -185,6 +197,3 @@ class InterestBasedArticleView(APIView):
         serializer = ArticleSerializer(relevant_articles, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
