@@ -3,12 +3,13 @@ import time
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
 from news.models import Article
+import os
 
 class Command(BaseCommand):
     help = 'Fetches latest news articles from mediastack API and saves them to the database'
 
     def handle(self, *args, **options):
-        api_key = 'xxx'
+        api_key = os.getenv('MEDIASTACK_API_KEY')
 
         for month_offset in range(10):
             end_date = datetime.now() - timedelta(days=30 * month_offset)

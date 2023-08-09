@@ -4,6 +4,7 @@
     "dotenv",
     "fuzzywuzzy",
     "langchain",
+    "MEDIASTACK",
     "openai",
     "PGDATABASE",
     "PGHOST",

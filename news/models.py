@@ -3,13 +3,15 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class Article(models.Model):
-	author = models.CharField(max_length=255)
+	author = models.CharField(max_length=255, null=True)
 	title = models.CharField(max_length=255)
-	description = models.CharField(max_length=255)
-	url = models.CharField(max_length=255)
+	description = models.TextField()
+	# Prevent issues with to long urls so dont use models.CharField(max_length=255)
+	url = models.TextField()
 	source = models.CharField(max_length=255)
-	image = models.CharField(max_length=255, null=True)
-	category = models.CharField(max_length=255)
+	# Prevent issues with to long urls so dont use CharField(max_length=255, null=True)
+	image = models.TextField(null=True)
+	category = models.CharField(max_length=255, null=True)
 	language = models.CharField(max_length=255)
 	published_at = models.CharField(max_length=255)
 
