@@ -106,13 +106,24 @@ class NewsArticleRecommendedView(generics.ListAPIView):
 @authentication_classes([JWTAuthentication])
 class UpdateInterests(generics.ListAPIView):
     def post(self, request):
-        user_profile= UserProfile.objects.get_or_create(user_id=self.request.user.id)
-        interests = request.data.get('interests', '')
+        user_profile, created = UserProfile.objects.get_or_create(user_id=self.request.user.id)
+        
+        interests = request.data.get('interests', [])
 
         user_profile.interests = interests
         user_profile.save()
 
-        return interests
+        return Response({"interests": interests})
+
+@authentication_classes([JWTAuthentication])
+class GetInterests(generics.ListAPIView):
+    def get(self, request):
+        try:
+            user_profile = UserProfile.objects.get(user_id=self.request.user.id)
+            interests = user_profile.interests
+            return Response({'interests': interests}, status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
 # ... (previous imports)
 from rest_framework.views import APIView
@@ -186,3 +197,6 @@ class InterestBasedArticleView(APIView):
         serializer = ArticleSerializer(relevant_articles, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+

@@ -26,4 +26,4 @@ class Search(models.Model):
 
 class UserProfile(models.Model):
     user_id = models.CharField(max_length=255, default=None)
-    interests = models.TextField(blank=True)
+    interests = models.TextField(blank=True, default="[]")
