@@ -68,21 +68,41 @@ from django.db.models import Q
 class NewsArticleSearchView(generics.ListAPIView):
     serializer_class = ArticleSerializer
 
+
+    def extract_keywords(self, query):
+        llm = OpenAI(temperature=0, verbose=True)
+
+        template = """
+        Summarize the search keywords in exact 1 word or phrase based on the following search query:
+        EXAMPLES:
+        search query: Tell me some basketball news
+        keywords: basketball
+        =================================================================
+        search query: {history}
+        keywords: 
+        """
+        prompt_template = PromptTemplate(
+            input_variables=['history'],
+            template=template
+        )
+
+        model = OpenAI(temperature=0, model_name="gpt-3.5-turbo")
+        in_text = prompt_template.format(history=query)
+
+        interests = model(in_text)
+        return interests
+
     def get_queryset(self):
         query = self.request.query_params.get('q')
-        tokens = word_tokenize(query)
-        
-        # Remove stopwords and non-alphanumeric characters
-        keywords = [token.lower() for token in tokens if token.isalnum() and token.lower() not in nltk.corpus.stopwords.words('english')]
+        keywords = self.extract_keywords(query)
 
-    
         q_objects = Q()
         for keyword in keywords:
             q_objects |= Q(title__icontains=keyword)
-            #  | Q(description__icontains=keyword)
-    
+            # You can also search in description if needed
+            # q_objects |= Q(description__icontains=keyword)
+
         articles = Article.objects.filter(q_objects)
-        query = self.request.query_params.get('q')
         results = []
         for article in articles:
             title_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.title))
@@ -90,10 +110,9 @@ class NewsArticleSearchView(generics.ListAPIView):
             # + description_score
             score = title_score 
             results.append((article, score))
-        results = sorted(results, key=itemgetter(1))
-        Search.objects.create(user_id=2,query=query)
+        results = sorted(results, key=itemgetter(1), reverse=True)
+        Search.objects.create(user_id=self.request.user.id, query=query)
         return [article for article, score in results]
-
 @authentication_classes([JWTAuthentication])
 class UpdateInterests(generics.ListAPIView):
     def post(self, request):
