@@ -5,6 +5,10 @@
     "fuzzywuzzy",
     "langchain",
     "openai",
+    "PGDATABASE",
+    "PGHOST",
+    "PGPORT",
+    "PGUSER",
     "vectorstores"
   ]
 }
