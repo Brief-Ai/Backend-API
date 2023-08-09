@@ -12,6 +12,7 @@ from langchain_experimental.sql import SQLDatabaseChain
 from langchain.utilities import SQLDatabase
 import os
 import sqlite3
+import ast
 
 
 from fuzzywuzzy import fuzz
@@ -77,15 +78,17 @@ class NewsArticleSearchView(generics.ListAPIView):
     
         q_objects = Q()
         for keyword in keywords:
-            q_objects |= Q(title__icontains=keyword) | Q(description__icontains=keyword)
+            q_objects |= Q(title__icontains=keyword)
+            #  | Q(description__icontains=keyword)
     
         articles = Article.objects.filter(q_objects)
         query = self.request.query_params.get('q')
         results = []
         for article in articles:
             title_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.title))
-            description_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.description))
-            score = title_score + description_score
+            # description_score = fuzz.token_set_ratio(word_tokenize(query), word_tokenize(article.description))
+            # + description_score
+            score = title_score 
             results.append((article, score))
         results = sorted(results, key=itemgetter(1))
         Search.objects.create(user_id=2,query=query)
@@ -124,14 +127,24 @@ from nltk.tokenize import word_tokenize
 
 class InterestBasedArticleView(APIView):
     def get(self, request, *args, **kwargs):
-        # try:
-        #     user_profile = UserProfile.objects.get(user_id=self.request.user.id)
-        #     user_interests = user_profile.interests
-        # except UserProfile.DoesNotExist:
-        #     return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
-        # if not user_interests:
-        #     return Response({'message': 'No interests available'}, status=status.HTTP_400_BAD_REQUEST)
-        user_interests = ['writing','anime','art']
+        try:
+            user_profile = UserProfile.objects.get(user_id=self.request.user.id)
+            imported_interests = user_profile.interests
+        except UserProfile.DoesNotExist:
+            return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        if not imported_interests:
+            return Response({'message': 'No interests available'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Convert str type from database into functional list
+        # Convert by splitting string by comma but dont include [ and ] and dont include existing quotes
+        interests_list = imported_interests[1:-1].split(', ') 
+        user_interests = [item.strip("'") for item in interests_list]
+
+        # # Debug, print user interests
+        # user_interests = ['writing', 'anime', 'art']
+        print('User interests: ', user_interests)
+        print('User interests type: ', type(user_interests))
+    
         def load_glove_embeddings(file_path):
             embeddings_dict = {}
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -162,7 +175,7 @@ class InterestBasedArticleView(APIView):
         # Calculate similarity and retrieve relevant articles
         data = Article.objects.values('title', 'description')
 
-        data = [each[0] + each[1] for each in data]
+        data = [each['title'] + each['description'] for each in data]
 
         sent_embedding = []
         for i in range(len(data)):
