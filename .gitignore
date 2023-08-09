@@ -1,8 +1,13 @@
 
-brieflybackend/.env
-.DS_Store
-brieflybackend/brieflybackend/.env
+
+briefbackendv3/news/glove.6B.200d.txt
+/glove.6B.50d.txt
+/glove.6B.200d.txt
+.env
 env/
+/.env
+.DS_Store
+
 test/
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -54,7 +59,3 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
-briefbackendv3/news/glove.6B.200d.txt
-/glove.6B.50d.txt
-/glove.6B.200d.txt
-.env
