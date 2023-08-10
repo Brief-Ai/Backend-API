@@ -143,7 +143,8 @@ class GetInterests(generics.ListAPIView):
         except UserProfile.DoesNotExist:
             return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
 class InterestBasedArticleView(APIView):
     def get(self, request, *args, **kwargs):
         try:
