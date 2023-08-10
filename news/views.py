@@ -24,15 +24,14 @@ from langchain.agents.agent_types import AgentType
 
 # Import standard libraries
 import os
-import sqlite3
-import ast
+
 import numpy as np
 from numpy.linalg import norm
 from nltk.tokenize import word_tokenize
 from fuzzywuzzy import fuzz
 from nltk.tokenize import word_tokenize
-import nltk
-import re
+
+import pickle
 
 # Import APIView related modules
 from rest_framework.views import APIView
@@ -48,8 +47,7 @@ from news.serializers import ArticleSerializer
 
 
 llm = ChatOpenAI(temperature=0.9, openai_api_key=os.getenv('OPENAPI_KEY'))
-# db = 'db.sqlite3'
-# db = SQLDatabase.from_uri("sqlite:///db.sqlite3")
+
 os.environ['OPENAI_API_KEY'] = os.getenv('OPENAPI_KEY')
 
 class SearchView(generics.ListAPIView):
@@ -170,19 +168,11 @@ class InterestBasedArticleView(APIView):
         print('Total user interests: ', len(user_interests))
         print('First user interest: ', user_interests[0])
     
-        def load_glove_embeddings(file_path):
-            embeddings_dict = {}
-            with open(file_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    values = line.split()
-                    word = values[0]
-                    embedding = [float(val) for val in values[1:]]
-                    embeddings_dict[word] = embedding
-            return embeddings_dict
+        with open('word_emb1.pickle', 'rb') as f:
+            embeddings_dict = pickle.load(f)
 
-        # Load embeddings and calculate interest vector
-        glove_file_path = 'glove.6B.50d.txt'
-        embeddings_dict = load_glove_embeddings(glove_file_path)
+        with open("word_emb2.pickle", 'rb') as f:
+            embeddings_dict.update(pickle.load(f))
 
         interest_vector = None
         count = 0
@@ -198,12 +188,12 @@ class InterestBasedArticleView(APIView):
             interest_vector /= count
 
         # Calculate similarity and retrieve relevant articles
-        data = Article.objects.values('title', 'description')
-
-        data = [each['title'] + each['description'] for each in data]
-
+        data_all = Article.objects.values('title', 'description', 'id')
+        data = [each['title'] + ' ' + each['description'] for each in data_all]
+        ids = [int(each['id']) for each in data_all]
         sent_embedding = []
         for i in range(len(data)):
+            
             sent = word_tokenize(data[i])
 
             temp = None
@@ -216,24 +206,18 @@ class InterestBasedArticleView(APIView):
                     else:
                         temp += np.array(embeddings_dict[each])
                     count += 1
-
             temp = temp / count
-            sent_embedding.append(temp)
+            sent_embedding.append((temp, ids[i]))
 
         result = []
         for idx, val in enumerate(data):
-            doc_vector = sent_embedding[idx]
+            doc_vector = sent_embedding[idx][0]
             similarity = np.sum(interest_vector * doc_vector) / (norm(interest_vector) * norm(doc_vector))
-            result.append((idx + 1, similarity))
+            result.append((sent_embedding[idx][1], similarity))
 
         result = sorted(result, key=lambda x: x[1], reverse=True)
 
         relevant_article_ids = [idx[0] for idx in result[:8]]
-        relevant_article_score = [idx[1] for idx in result[:8]]
-        # Print similarity score for debugging of each article
-        print('Article ids: ', relevant_article_ids)
-        print('Similarity score: ', relevant_article_score)
-        
         
         # Retrieve relevant articles from the database
         relevant_articles = Article.objects.filter(id__in=relevant_article_ids)
