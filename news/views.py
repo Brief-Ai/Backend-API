@@ -49,7 +49,7 @@ from news.serializers import ArticleSerializer
 
 llm = ChatOpenAI(temperature=0.9, openai_api_key=os.getenv('OPENAPI_KEY'))
 # db = 'db.sqlite3'
-db = SQLDatabase.from_uri("sqlite:///db.sqlite3")
+# db = SQLDatabase.from_uri("sqlite:///db.sqlite3")
 os.environ['OPENAI_API_KEY'] = os.getenv('OPENAPI_KEY')
 
 class SearchView(generics.ListAPIView):
@@ -165,6 +165,10 @@ class InterestBasedArticleView(APIView):
         # user_interests = ['writing', 'anime', 'art']
         print('User interests: ', user_interests)
         print('User interests type: ', type(user_interests))
+        
+        # Further debuging
+        print('Total user interests: ', len(user_interests))
+        print('First user interest: ', user_interests[0])
     
         def load_glove_embeddings(file_path):
             embeddings_dict = {}
@@ -225,6 +229,11 @@ class InterestBasedArticleView(APIView):
         result = sorted(result, key=lambda x: x[1], reverse=True)
 
         relevant_article_ids = [idx[0] for idx in result[:8]]
+        relevant_article_score = [idx[1] for idx in result[:8]]
+        # Print similarity score for debugging of each article
+        print('Article ids: ', relevant_article_ids)
+        print('Similarity score: ', relevant_article_score)
+        
         
         # Retrieve relevant articles from the database
         relevant_articles = Article.objects.filter(id__in=relevant_article_ids)
