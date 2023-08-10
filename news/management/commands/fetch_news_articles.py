@@ -10,7 +10,7 @@ class Command(BaseCommand):
         params = {
             'access_key': 'YOUR_ACCESS_KEY',
             'languages': 'en',
-            'limit': 10,
+            'limit': 100,
         }
         response = requests.get('https://api.mediastack.com/v1/news', params=params)
         data = response.json()

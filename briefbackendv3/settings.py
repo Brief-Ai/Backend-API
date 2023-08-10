@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_filters',
-    'crontab',
+    'django_crontab',
     'corsheaders',
 ]
 
@@ -190,6 +190,6 @@ SIMPLE_JWT = {
 }
 
 CRONJOBS = [
-    ('30 3 * * *', 'myapp.management.commands.fetch_news_articles'),
+    ('0 * * * *', 'news.commands.fetch_news_articles'),
 ]
 
