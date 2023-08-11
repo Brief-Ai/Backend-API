@@ -261,9 +261,9 @@ class InterestBasedArticleView(APIView):
         # Print count of relevant articles
         
 
-        # Print article names with ids
-        for article in updated_relevant_articles:
-            print(article['id'],':',article['title'])
+        # # Print article names with ids
+        # for article in updated_relevant_articles:
+        #     print(article['id'],':',article['title'])
       
             
         # Print ids of relevant articles
