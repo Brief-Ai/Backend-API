@@ -245,18 +245,25 @@ class InterestBasedArticleView(APIView):
                     if image_url:
                         article['image'] = image_url  # Update the image URL for the article
                         updated_relevant_articles.append(article)
-
                         # Update the Article model's image URL in the database
                         article_instance = Article.objects.get(id=article['id'])
                         article_instance.image = image_url
                         article_instance.save()
+                    else:
+                        print('No image found for URL:', url)
+                        updated_relevant_articles.append(article)
                 except Exception as e:
                     print('Error fetching image:', e)
+                    updated_relevant_articles.append(article)
             else:
                 updated_relevant_articles.append(article)
 
-        # Update database Article image with the new image URL
+        # Print count of relevant articles
+        
 
+        # Print article names with ids
+        for article in updated_relevant_articles:
+            print(article['id'],':',article['title'])
       
             
         # Print ids of relevant articles
