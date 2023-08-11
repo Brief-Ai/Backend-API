@@ -3,6 +3,8 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.response import Response
 from rest_framework import generics, filters
+from bs4 import BeautifulSoup
+import requests
 
 # Import user profile related modules
 from .models import UserProfile
@@ -143,8 +145,7 @@ class GetInterests(generics.ListAPIView):
         except UserProfile.DoesNotExist:
             return Response({'message': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
 
-@api_view(['GET'])
-@authentication_classes([JWTAuthentication])
+
 class InterestBasedArticleView(APIView):
     def get(self, request, *args, **kwargs):
         try:
@@ -223,5 +224,70 @@ class InterestBasedArticleView(APIView):
         # Retrieve relevant articles from the database
         relevant_articles = Article.objects.filter(id__in=relevant_article_ids)
         serializer = ArticleSerializer(relevant_articles, many=True)
+        
+        print('Relevant article ids: ', relevant_article_ids)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Given the 8 recommended articles, query each article URL for og:image and if an image is found, append it to the article and database
+        updated_relevant_articles = []
+        for article in serializer.data:
+            if article['image'] == '' or article['image'] == 'null' or article['image'] is None:
+                url = article['url']
+                try:
+                    print(f'\nFetching image for URL:', url)
+                    response = requests.get(url)
+                    html = response.text
+
+                    # Use your extractImageFromHtml function here to get the image URL
+                    image_url = extractImageFromHtml(html, url)
+                    print('Extracted image URL:', image_url)
+
+                    if image_url:
+                        article['image'] = image_url  # Update the image URL for the article
+                        updated_relevant_articles.append(article)
+
+                        # Update the Article model's image URL in the database
+                        article_instance = Article.objects.get(id=article['id'])
+                        article_instance.image = image_url
+                        article_instance.save()
+                except Exception as e:
+                    print('Error fetching image:', e)
+            else:
+                updated_relevant_articles.append(article)
+
+        # Update database Article image with the new image URL
+
+      
+            
+        # Print ids of relevant articles
+
+        # Response with updated articles containing images
+        return Response(updated_relevant_articles, status=status.HTTP_200_OK)
+
+    
+    
+def extractImageFromHtml(html: str, url: str) -> str:
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Try to find the image URL using meta tags for Open Graph protocol
+        og_image = soup.find('meta', property='og:image')
+        if og_image:
+            return og_image['content']
+
+        # If no Open Graph image tag found, try to find the first image tag in the page
+        img_tag = soup.find('img')
+        if img_tag and 'src' in img_tag.attrs:
+            image_url = img_tag['src']
+
+            # Handle relative URLs by making them absolute
+            if not image_url.startswith('http'):
+                image_url = url + image_url
+
+            return image_url
+
+        # If no image found, return None
+        return None
+    except Exception as e:
+        print('Error extracting image from HTML:', e)
+        return None
